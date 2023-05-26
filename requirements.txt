@@ -1,0 +1,6 @@
+fastapi[all]
+geopy
+pony
+flake8
+autopep8
+apscheduler
