@@ -31,11 +31,16 @@ postgres
 # инструкция по запуску и настройке
 
 ## в терминале выполнить команду:
-git@github.com:OlegZhigulin/fastapi_delivery.git
+git clone git@github.com:OlegZhigulin/fastapi_delivery.git
+## для запуска контейнера выполнить команду :
+### с логами в терминале:
+docker-compose up --build
+### без логов в терминале:
+docker-compose up -d --build
 
-
-
+## Теперь проект доступен по адресу: http://127.0.0.1:8000/docs
 # Примеры запросов к API:
+
 ### Пример запроса http://127.0.0.1:8000/cargo/show_all на отображение списка грузов, доступна фильтрация по весу и расстояние до машин(по умолчанию <=450)
 ```
 {
