@@ -1,5 +1,5 @@
 from fastapi import APIRouter, status
-from pony.orm import db_session, flush
+from pony.orm import db_session, flush, select
 
 from src.models import Car, Cargo
 from src.schemas import (
@@ -8,6 +8,7 @@ from src.schemas import (
     CargoListResponseModel,
     CargoResponseModel,
     CargoUpdateModel,
+    CargoCountResponseModel
 )
 from src.utils import (
     calculate_distanse_between_points,
@@ -30,18 +31,50 @@ cargo_router = APIRouter(
     response_model=CargoListResponseModel
 )
 @db_session
-def show_all_cargo():
-    cargo_data = Cargo.select()
-    data = [
-        CargoResponseModel(
-            description=cargo.description,
-            weight=cargo.weight,
-            pick_up=cargo.pick_up.to_dict(),
-            delivery=cargo.delivery.to_dict(),
-            count_cars=10,
-        ) for cargo in cargo_data
-    ]
+def show_all_cargo(
+    min_weight: int = 1,
+    max_weight: int = 1000,
+    max_distanse: int = 450
+):
+    """Тут конечно я намудрил=))
+    но не понятно как лучше поступить
+    мы можем хранить расстояние для посылки в бд
+    и потом фильтровать, но машины у нас обновляются каждые 3 минуты
+    что дольше выполнится insert или рассчет на месте???
+    или как здесь считать по требованию
+    функция рассчета расстояния обренута декоратором lru_cache
+    """
+    cargo_data = select(
+        cargo for cargo in Cargo if (
+            cargo.weight >= min_weight and cargo.weight <= max_weight
+        )
+    )
+    cars = Car.select()
+    data = []
+    for package in cargo_data:
+        package_coordinate = (package.pick_up.latitude,
+                              package.pick_up.longitude)
+        package = package.to_dict(with_collections=True, related_objects=True)
+        pick_up = package.get('pick_up').to_dict(related_objects=True)
+        pick_up['state'] = pick_up.get('state').to_dict()
+        delivery = package.get('delivery').to_dict(related_objects=True)
+        delivery['state'] = delivery.get('state').to_dict()
+        count_car = 0
 
+        for car in cars:
+            car_coordinate = (car.location.latitude, car.location.longitude)
+            distanse = calculate_distanse_between_points(
+                car_coordinate,
+                package_coordinate,
+            )
+            if distanse <= max_distanse:
+                count_car += 1
+        data.append(CargoCountResponseModel(
+            weight=package.get('weight'),
+            description=package.get('description'),
+            count_car=count_car,
+            pick_up=pick_up,
+            delivery=delivery))
     response = {'data': data}
     return response
 
@@ -173,37 +206,3 @@ def update_vehicle(pk: int, zip_code: str):
         'location': location
     }
     return response
-
-
-@ vehicle_router.get(
-    '/',
-    summary='listvenicle',
-    description='list venicle',
-    status_code=status.HTTP_200_OK,
-
-)
-@ db_session
-def ads(package_id: int):
-    cnt = get_count_near_car(list_venicle(package_id))
-    return cnt
-
-
-def list_venicle(package_id: int):
-    package = Cargo.get(id=package_id)
-    package_coordinate = (package.pick_up.latitude, package.pick_up.longitude)
-    response = dict()
-    cars = Car.select()
-    for car in cars:
-        car_coordinate = (car.location.latitude, car.location.longitude)
-        distance = calculate_distanse_between_points(
-            car_coordinate, package_coordinate)
-        response[car.vin_number] = int(distance)
-    return response
-
-
-def get_near_car_count(list_car: dict):
-    cnt = 0
-    for val in list_car.values():
-        if val <= 450:
-            cnt += 1
-    return cnt

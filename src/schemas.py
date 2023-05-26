@@ -85,8 +85,16 @@ class CargoResponseModel(BaseModel):
     cars_list: dict[str, int] = None
 
 
+class CargoCountResponseModel(BaseModel):
+    description: Optional[str] = None
+    weight: int
+    pick_up: LocationResponseModel
+    delivery: LocationResponseModel
+    count_car: int
+
+
 class CargoListResponseModel(BaseModel):
-    data: list[CargoResponseModel]
+    data: list[CargoCountResponseModel]
 
 
 class CarUpdateModel(BaseModel):

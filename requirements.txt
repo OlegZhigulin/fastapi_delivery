@@ -4,3 +4,4 @@ pony
 flake8
 autopep8
 apscheduler
+psycopg2-binary

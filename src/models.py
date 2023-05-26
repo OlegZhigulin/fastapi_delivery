@@ -38,7 +38,8 @@ class Cargo(db.Entity):
 
 def init_database():
     try:
-        db.bind(provider='sqlite', filename='database.sqlite', create_db=True)
+        db.bind(provider='postgres', user='postgres',
+                password='2202SuperData', host='db', database='postgres')
         db.generate_mapping(create_tables=True)
 
     except Exception as error:
