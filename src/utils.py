@@ -110,3 +110,17 @@ def create_car():
     car_data = list(zip(vin_numbers, locations, capacity_set))
     for car in car_data:
         Car(vin_number=car[0], location=car[1], capacity=car[2])
+
+
+@db_session
+def check_car_from_db():
+    cars = Car.select()[:1]
+    if not cars:
+        create_car()
+
+
+@db_session
+def check_location_from_db():
+    locations = Location.select()[:1]
+    if not locations:
+        create_locations()
